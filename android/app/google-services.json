@@ -1,0 +1,67 @@
+{
+  "project_info": {
+    "project_number": "1012820363886",
+    "project_id": "sixvalley-1431",
+    "storage_bucket": "sixvalley-1431.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1012820363886:android:98b46fe7cb73ecebc4f47f",
+        "android_client_info": {
+          "package_name": "com.wholesalespalletcus.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDUNnx6rDx7krHamU2BRh7JgW-e636YLmc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1012820363886:android:f9cadb0ca0beeeecc4f47f",
+        "android_client_info": {
+          "package_name": "com.wholesalespalletdriv.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDUNnx6rDx7krHamU2BRh7JgW-e636YLmc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1012820363886:android:af773b27e2579f39c4f47f",
+        "android_client_info": {
+          "package_name": "com.wholesalespalletvendor.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDUNnx6rDx7krHamU2BRh7JgW-e636YLmc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
