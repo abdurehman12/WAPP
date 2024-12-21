@@ -10,11 +10,14 @@ import 'package:flutter_sixvalley_ecommerce/common/basewidget/animated_custom_di
 import 'package:flutter_sixvalley_ecommerce/features/checkout/widgets/order_place_dialog_widget.dart';
 import 'package:flutter_sixvalley_ecommerce/features/dashboard/screens/dashboard_screen.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:flutter_sixvalley_ecommerce/features/checkout/controllers/checkout_controller.dart';
+import 'package:provider/provider.dart';
 
 class DigitalPaymentScreen extends StatefulWidget {
   final String url;
   final bool fromWallet;
-  const DigitalPaymentScreen({super.key, required this.url,  this.fromWallet = false});
+  final Map<String, dynamic>? orderDetails;
+  const DigitalPaymentScreen({super.key, required this.url,  this.fromWallet = false, this.orderDetails,});
 
   @override
   DigitalPaymentScreenState createState() => DigitalPaymentScreenState();
@@ -212,53 +215,50 @@ class MyInAppBrowser extends InAppBrowser {
       bool isSuccess = url.contains('success') && url.contains(AppConstants.baseUrl);
       bool isFailed = url.contains('fail') && url.contains(AppConstants.baseUrl);
       bool isCancel = url.contains('cancel') && url.contains(AppConstants.baseUrl);
+
       if(isSuccess || isFailed || isCancel) {
         _canRedirect = false;
         close();
-      }
-      if(isSuccess){
 
-        Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const DashBoardScreen()), (route) => false);
+        if(isSuccess) {
+          // Get the checkout controller
+          var orderProvider = Provider.of<CheckoutController>(context, listen: false);
 
+          // Place order with digital payment
+          orderProvider.placeOrder(
+            callback: (bool isSuccess, String message, String orderID, bool isNewUser) {
+              Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => const DashBoardScreen()),
+                      (route) => false
+              );
 
-        showAnimatedDialog(context, OrderPlaceDialogWidget(
-          icon: Icons.done,
-          title: getTranslated( isNewUser ? 'order_placed_Account_Created' : 'order_placed', context ),
-          description: getTranslated('your_order_placed', context),
-        ), dismissible: false, willFlip: true);
+              showAnimatedDialog(context, OrderPlaceDialogWidget(
+                icon: Icons.done,
+                title: getTranslated(isNewUser ? 'order_placed_Account_Created' : 'order_placed', context),
+                description: getTranslated('your_order_placed', context),
+              ), dismissible: false, willFlip: true);
+            },
+            addressID: orderProvider.addressIndex?.toString(),
+            billingAddressId: orderProvider.billingAddressIndex?.toString(),
+            orderNote: '',  // You might want to pass this from the previous screen
+            couponCode: '',  // Pass from previous screen if available
+            couponAmount: '0',  // Pass from previous screen if available
+            // Add any other required parameters from the checkout screen
+            // These should ideally be passed to DigitalPaymentScreen when it's created
+          );
+        } else if(isFailed) {
+          Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(
+              builder: (_) => const DashBoardScreen()), (route) => false);
 
-
-      }else if(isFailed) {
-        Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(
-            builder: (_) => const DashBoardScreen()), (route) => false);
-
-
-
-        showAnimatedDialog(context, OrderPlaceDialogWidget(
-          icon: Icons.clear,
-          title: getTranslated('payment_failed', context),
-          description: getTranslated('your_payment_failed', context),
-          isFailed: true,
-        ), dismissible: false, willFlip: true);
-
-
-      }else if(isCancel) {
-        Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(
-            builder: (_) => const DashBoardScreen()), (route) => false);
-
-
-        showAnimatedDialog(context, OrderPlaceDialogWidget(
-          icon: Icons.clear,
-          title: getTranslated('payment_cancelled', context),
-          description: getTranslated('your_payment_cancelled', context),
-          isFailed: true,
-        ), dismissible: false, willFlip: true);
-
+          showAnimatedDialog(context, OrderPlaceDialogWidget(
+            icon: Icons.clear,
+            title: getTranslated('payment_failed', context),
+            description: getTranslated('your_payment_failed', context),
+            isFailed: true,
+          ), dismissible: false, willFlip: true);
+        }
       }
     }
-
   }
-
-
 
 }
