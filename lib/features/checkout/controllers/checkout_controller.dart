@@ -401,10 +401,19 @@ class CheckoutController with ChangeNotifier {
     notifyListeners();
 
     ApiResponse apiResponse = await checkoutServiceInterface.digitalPaymentPlaceOrder(
-        orderNote, customerId, addressId, billingAddressId,
-        couponCode, couponDiscount, paymentMethod,
-        _isCheckCreateAccount, passwordController.text.trim()
+        orderNote,
+        customerId,
+        addressId,
+        billingAddressId,
+        couponCode,
+        couponDiscount,
+        paymentMethod,  // This should be 'stripe'
+        _isCheckCreateAccount,
+        passwordController.text.trim()
     );
+
+    _isLoading = false;
+    notifyListeners();
 
     if (apiResponse.response?.statusCode == 200) {
       _paymentUrl = apiResponse.response?.data['redirect_link'];
