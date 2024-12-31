@@ -10,14 +10,29 @@ import 'package:flutter_sixvalley_ecommerce/common/basewidget/animated_custom_di
 import 'package:flutter_sixvalley_ecommerce/features/checkout/widgets/order_place_dialog_widget.dart';
 import 'package:flutter_sixvalley_ecommerce/features/dashboard/screens/dashboard_screen.dart';
 import 'package:webview_flutter/webview_flutter.dart';
-import 'package:flutter_sixvalley_ecommerce/features/checkout/controllers/checkout_controller.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_sixvalley_ecommerce/features/checkout/widgets/shipping_payloads/shipping-payload-integrator.dart';
+import 'package:flutter_sixvalley_ecommerce/features/cart/domain/models/cart_model.dart';
+
 
 class DigitalPaymentScreen extends StatefulWidget {
   final String url;
   final bool fromWallet;
-  final Map<String, dynamic>? orderDetails;
-  const DigitalPaymentScreen({super.key, required this.url,  this.fromWallet = false, this.orderDetails,});
+  final Map<String, dynamic> addressDetails;
+  final List<CartModel> cartItems;
+  final double totalAmount;
+  final double taxAmount;
+  final double discountAmount;
+  final double shippingFee;
+  final double calculatedDistance;
+  final String generatedOrderId;
+  const DigitalPaymentScreen({super.key, required this.url,  this.fromWallet = false, required this.addressDetails,
+    required this.cartItems,
+    required this.totalAmount,
+    required this.taxAmount,
+    required this.discountAmount,
+    required this.shippingFee,
+    required this.calculatedDistance,
+    required this.generatedOrderId,});
 
   @override
   DigitalPaymentScreenState createState() => DigitalPaymentScreenState();
@@ -40,7 +55,14 @@ class DigitalPaymentScreenState extends State<DigitalPaymentScreen> {
   }
 
   void _initData() async {
-    browser = MyInAppBrowser(context);
+    browser = MyInAppBrowser(context,addressDetails: widget.addressDetails,
+      cartItems: widget.cartItems,
+      totalAmount: widget.totalAmount,
+      taxAmount: widget.taxAmount,
+      discountAmount: widget.discountAmount,
+      shippingFee: widget.shippingFee,
+      calculatedDistance: widget.calculatedDistance,
+      generatedOrderId: widget.generatedOrderId,);
     if(!Platform.isIOS){
       await AndroidInAppWebViewController.setWebContentsDebuggingEnabled(true);
     }
@@ -94,9 +116,26 @@ class MyInAppBrowser extends InAppBrowser {
 
   final BuildContext context;
 
+  final Map<String, dynamic> addressDetails;
+  final List<CartModel> cartItems;
+  final double totalAmount;
+  final double taxAmount;
+  final double discountAmount;
+  final double shippingFee;
+  final double calculatedDistance;
+  final String generatedOrderId;
+
   MyInAppBrowser(this.context,  {
     super.windowId,
     super.initialUserScripts,
+    required this.addressDetails,
+    required this.cartItems,
+    required this.totalAmount,
+    required this.taxAmount,
+    required this.discountAmount,
+    required this.shippingFee,
+    required this.calculatedDistance,
+    required this.generatedOrderId,
   });
 
   bool _canRedirect = true;
@@ -215,50 +254,92 @@ class MyInAppBrowser extends InAppBrowser {
       bool isSuccess = url.contains('success') && url.contains(AppConstants.baseUrl);
       bool isFailed = url.contains('fail') && url.contains(AppConstants.baseUrl);
       bool isCancel = url.contains('cancel') && url.contains(AppConstants.baseUrl);
-
       if(isSuccess || isFailed || isCancel) {
         _canRedirect = false;
         close();
+      }
+      if(isSuccess){
 
-        if(isSuccess) {
-          // Get the checkout controller
-          var orderProvider = Provider.of<CheckoutController>(context, listen: false);
+        Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const DashBoardScreen()), (route) => false);
 
-          // Place order with digital payment
-          orderProvider.placeOrder(
-            callback: (bool isSuccess, String message, String orderID, bool isNewUser) {
-              Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (_) => const DashBoardScreen()),
-                      (route) => false
-              );
 
-              showAnimatedDialog(context, OrderPlaceDialogWidget(
-                icon: Icons.done,
-                title: getTranslated(isNewUser ? 'order_placed_Account_Created' : 'order_placed', context),
-                description: getTranslated('your_order_placed', context),
-              ), dismissible: false, willFlip: true);
-            },
-            addressID: orderProvider.addressIndex?.toString(),
-            billingAddressId: orderProvider.billingAddressIndex?.toString(),
-            orderNote: '',  // You might want to pass this from the previous screen
-            couponCode: '',  // Pass from previous screen if available
-            couponAmount: '0',  // Pass from previous screen if available
-            // Add any other required parameters from the checkout screen
-            // These should ideally be passed to DigitalPaymentScreen when it's created
-          );
-        } else if(isFailed) {
-          Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(
-              builder: (_) => const DashBoardScreen()), (route) => false);
+        showAnimatedDialog(context, OrderPlaceDialogWidget(
+          icon: Icons.done,
+          title: getTranslated( isNewUser ? 'order_placed_Account_Created' : 'order_placed', context ),
+          description: getTranslated('your_order_placed', context),
+        ), dismissible: false, willFlip: true);
 
-          showAnimatedDialog(context, OrderPlaceDialogWidget(
-            icon: Icons.clear,
-            title: getTranslated('payment_failed', context),
-            description: getTranslated('your_payment_failed', context),
-            isFailed: true,
-          ), dismissible: false, willFlip: true);
-        }
+        // Add shipping payload integration
+        _sendShippingPayload(
+          selectedShippingMethod: 'Shipday', // Replace with the actual selected shipping method
+          addressDetails: addressDetails, // Replace with the actual address details
+          cartItems: cartItems, // Replace with the actual cart items
+          totalAmount: totalAmount, // Replace with the actual total amount
+          taxAmount: taxAmount, // Replace with the actual tax amount
+          discountAmount: discountAmount, // Replace with the actual discount amount
+          shippingFee: shippingFee, // Replace with the actual shipping fee
+          calculatedDistance: calculatedDistance, // Replace with the actual calculated distance
+          generatedOrderId: generatedOrderId, // Replace with the actual generated order ID
+        );
+
+      }else if(isFailed) {
+        Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(
+            builder: (_) => const DashBoardScreen()), (route) => false);
+
+
+
+        showAnimatedDialog(context, OrderPlaceDialogWidget(
+          icon: Icons.clear,
+          title: getTranslated('payment_failed', context),
+          description: getTranslated('your_payment_failed', context),
+          isFailed: true,
+        ), dismissible: false, willFlip: true);
+
+
+      }else if(isCancel) {
+        Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(
+            builder: (_) => const DashBoardScreen()), (route) => false);
+
+
+        showAnimatedDialog(context, OrderPlaceDialogWidget(
+          icon: Icons.clear,
+          title: getTranslated('payment_cancelled', context),
+          description: getTranslated('your_payment_cancelled', context),
+          isFailed: true,
+        ), dismissible: false, willFlip: true);
+
       }
     }
+
   }
+
+  void _sendShippingPayload({
+    required String selectedShippingMethod,
+    required Map<String, dynamic> addressDetails,
+    required List<CartModel> cartItems,
+    required double totalAmount,
+    required double taxAmount,
+    required double discountAmount,
+    required double shippingFee,
+    required double calculatedDistance,
+    required String generatedOrderId,
+  }) {
+    ShippingPayloadIntegrator(
+      shippingMethod: selectedShippingMethod,
+      addressDetails: addressDetails,
+      cartItems: cartItems,
+      totalAmount: totalAmount,
+      tax: taxAmount,
+      discount: discountAmount,
+      deliveryFee: shippingFee,
+      distance: calculatedDistance,
+      orderId: generatedOrderId,
+      onPayloadSent: () {
+        print('Shipping payload sent successfully');
+      },
+    );
+  }
+
+
 
 }
