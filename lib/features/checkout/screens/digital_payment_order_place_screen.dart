@@ -10,11 +10,29 @@ import 'package:flutter_sixvalley_ecommerce/common/basewidget/animated_custom_di
 import 'package:flutter_sixvalley_ecommerce/features/checkout/widgets/order_place_dialog_widget.dart';
 import 'package:flutter_sixvalley_ecommerce/features/dashboard/screens/dashboard_screen.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:flutter_sixvalley_ecommerce/features/checkout/widgets/shipping_payloads/shipping-payload-integrator.dart';
+import 'package:flutter_sixvalley_ecommerce/features/cart/domain/models/cart_model.dart';
+
 
 class DigitalPaymentScreen extends StatefulWidget {
   final String url;
   final bool fromWallet;
-  const DigitalPaymentScreen({super.key, required this.url,  this.fromWallet = false});
+  final Map<String, dynamic> addressDetails;
+  final List<CartModel> cartItems;
+  final double totalAmount;
+  final double taxAmount;
+  final double discountAmount;
+  final double shippingFee;
+  final double calculatedDistance;
+  final String generatedOrderId;
+  const DigitalPaymentScreen({super.key, required this.url,  this.fromWallet = false, required this.addressDetails,
+    required this.cartItems,
+    required this.totalAmount,
+    required this.taxAmount,
+    required this.discountAmount,
+    required this.shippingFee,
+    required this.calculatedDistance,
+    required this.generatedOrderId,});
 
   @override
   DigitalPaymentScreenState createState() => DigitalPaymentScreenState();
@@ -37,7 +55,14 @@ class DigitalPaymentScreenState extends State<DigitalPaymentScreen> {
   }
 
   void _initData() async {
-    browser = MyInAppBrowser(context);
+    browser = MyInAppBrowser(context,addressDetails: widget.addressDetails,
+      cartItems: widget.cartItems,
+      totalAmount: widget.totalAmount,
+      taxAmount: widget.taxAmount,
+      discountAmount: widget.discountAmount,
+      shippingFee: widget.shippingFee,
+      calculatedDistance: widget.calculatedDistance,
+      generatedOrderId: widget.generatedOrderId,);
     if(!Platform.isIOS){
       await AndroidInAppWebViewController.setWebContentsDebuggingEnabled(true);
     }
@@ -91,9 +116,26 @@ class MyInAppBrowser extends InAppBrowser {
 
   final BuildContext context;
 
+  final Map<String, dynamic> addressDetails;
+  final List<CartModel> cartItems;
+  final double totalAmount;
+  final double taxAmount;
+  final double discountAmount;
+  final double shippingFee;
+  final double calculatedDistance;
+  final String generatedOrderId;
+
   MyInAppBrowser(this.context,  {
     super.windowId,
     super.initialUserScripts,
+    required this.addressDetails,
+    required this.cartItems,
+    required this.totalAmount,
+    required this.taxAmount,
+    required this.discountAmount,
+    required this.shippingFee,
+    required this.calculatedDistance,
+    required this.generatedOrderId,
   });
 
   bool _canRedirect = true;
@@ -227,6 +269,18 @@ class MyInAppBrowser extends InAppBrowser {
           description: getTranslated('your_order_placed', context),
         ), dismissible: false, willFlip: true);
 
+        // Add shipping payload integration
+        _sendShippingPayload(
+          selectedShippingMethod: 'Shipday', // Replace with the actual selected shipping method
+          addressDetails: addressDetails, // Replace with the actual address details
+          cartItems: cartItems, // Replace with the actual cart items
+          totalAmount: totalAmount, // Replace with the actual total amount
+          taxAmount: taxAmount, // Replace with the actual tax amount
+          discountAmount: discountAmount, // Replace with the actual discount amount
+          shippingFee: shippingFee, // Replace with the actual shipping fee
+          calculatedDistance: calculatedDistance, // Replace with the actual calculated distance
+          generatedOrderId: generatedOrderId, // Replace with the actual generated order ID
+        );
 
       }else if(isFailed) {
         Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(
@@ -257,6 +311,33 @@ class MyInAppBrowser extends InAppBrowser {
       }
     }
 
+  }
+
+  void _sendShippingPayload({
+    required String selectedShippingMethod,
+    required Map<String, dynamic> addressDetails,
+    required List<CartModel> cartItems,
+    required double totalAmount,
+    required double taxAmount,
+    required double discountAmount,
+    required double shippingFee,
+    required double calculatedDistance,
+    required String generatedOrderId,
+  }) {
+    ShippingPayloadIntegrator(
+      shippingMethod: selectedShippingMethod,
+      addressDetails: addressDetails,
+      cartItems: cartItems,
+      totalAmount: totalAmount,
+      tax: taxAmount,
+      discount: discountAmount,
+      deliveryFee: shippingFee,
+      distance: calculatedDistance,
+      orderId: generatedOrderId,
+      onPayloadSent: () {
+        print('Shipping payload sent successfully');
+      },
+    );
   }
 
 

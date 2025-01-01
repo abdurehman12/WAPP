@@ -95,7 +95,9 @@ class CheckoutRepository implements CheckoutRepositoryInterface{
       String? couponDiscount,
       String? paymentMethod,
       bool? isCheckCreateAccount,
-      String? password
+      String? password,
+      double? totalAmount,
+      double? shippingFee
       ) async {
 
     try {
@@ -115,6 +117,8 @@ class CheckoutRepository implements CheckoutRepositoryInterface{
         'is_guest': !Provider.of<AuthController>(Get.context!, listen: false).isLoggedIn(),
         'is_check_create_account' : isCheckAccount.toString(),
         'password' : password,
+        'total_amount': totalAmount,
+        'shipping_fee': shippingFee,
       };
 
 
@@ -133,6 +137,8 @@ class CheckoutRepository implements CheckoutRepositoryInterface{
         'is_guest': !Provider.of<AuthController>(Get.context!, listen: false).isLoggedIn(),
         'is_check_create_account' : isCheckAccount.toString(),
         'password' : password,
+        'total_amount': totalAmount,
+        'shipping_fee': shippingFee,
       });
       return ApiResponse.withSuccess(response);
     } catch (e) {
