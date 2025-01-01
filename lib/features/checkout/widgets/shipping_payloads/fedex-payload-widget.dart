@@ -1,7 +1,9 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:flutter_sixvalley_ecommerce/features/cart/domain/models/cart_model.dart';
 
-class FedExPayloadWidget extends StatefulWidget {
+class FedExPayloadWidget extends StatelessWidget {
   final Map<String, dynamic> addressDetails;
   final List<CartModel> cartItems;
   final double totalAmount;
@@ -23,83 +25,105 @@ class FedExPayloadWidget extends StatefulWidget {
     required this.onPayloadGenerated,
   }) : super(key: key);
 
-  @override
-  _FedExPayloadWidgetState createState() => _FedExPayloadWidgetState();
-}
+  Future<String?> _getFedExToken() async {
+    try {
+      final response = await http.post(
+        Uri.parse('https://apis-sandbox.fedex.com/oauth/token'),
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: {
+          'grant_type': 'client_credentials',
+          'client_id': 'l72a982c357eff42258a4b7b3ada56e11a',
+          'client_secret': '1400190376404dd6a35937dd41e4067d',
+        },
+      );
 
-class _FedExPayloadWidgetState extends State<FedExPayloadWidget> {
-  @override
-  void initState() {
-    super.initState();
-    _generatePayload();
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['access_token'];
+      }
+      return null;
+    } catch (e) {
+      print('Error getting FedEx token: $e');
+      return null;
+    }
   }
 
-  void _generatePayload() {
+  Future<void> _generatePayload() async {
+    final token = await _getFedExToken();
+    if (token == null) return;
+
     double totalWeight = 0;
-    for (var item in widget.cartItems) {
-      totalWeight += (item.weight ?? 0.5) * (item.quantity ?? 1);
+    for (var item in cartItems) {
+      if (item.quantity != null) {
+        totalWeight += (item.quantity ?? 1) * 0.5;
+      }
     }
 
     final payload = {
-      'requestedShipment': {
-        'shipper': {
-          'contact': {
-            'companyName': '6Valley',
-            'phoneNumber': '+44 0000 000000'
+      "labelResponseOptions": "URL_ONLY",
+      "requestedShipment": {
+        "shipper": {
+          "contact": {
+            "personName": "SHIPPER NAME",
+            "phoneNumber": 1234567890,
+            "companyName": "6Valley"
           },
-          'address': {
-            'streetLines': ['15 Tideswell Rd'],
-            'city': 'Sheffield',
-            'postalCode': 'S5 6QR',
-            'countryCode': 'GB'
+          "address": {
+            "streetLines": ["15 Tideswell Rd"],
+            "city": "Sheffield",
+            "postalCode": "S5 6QR",
+            "countryCode": "GB"
           }
         },
-        'recipients': [
+        "recipients": [
           {
-            'contact': {
-              'personName': widget.addressDetails['contactPersonName'] ?? 'Recipient',
-              'phoneNumber': widget.addressDetails['phone'] ?? '',
-              'emailAddress': widget.addressDetails['email'] ?? '',
+            "contact": {
+              "personName": addressDetails['contactPersonName'] ?? "",
+              "phoneNumber": int.tryParse(addressDetails['phone'] ?? "") ?? 1234567890,
+              "companyName": "Recipient Company Name"
             },
-            'address': {
-              'streetLines': [widget.addressDetails['address'] ?? ''],
-              'city': widget.addressDetails['city'] ?? '',
-              'postalCode': widget.addressDetails['zipCode'] ?? '',
-              'countryCode': 'GB'
+            "address": {
+              "streetLines": [addressDetails['address'] ?? ""],
+              "city": addressDetails['city'] ?? "",
+              "postalCode": addressDetails['zipCode'] ?? "",
+              "countryCode": "GB"
             }
           }
         ],
-        'serviceType': 'FEDEX_NEXT_DAY_MID_MORNING',
-        'packagingType': 'FEDEX_PAK',
-        'requestedPackageLineItems': [
+        "shipDatestamp": DateTime.now().toIso8601String().split('T')[0],
+        "serviceType": "FEDEX_NEXT_DAY_MID_MORNING",
+        "packagingType": "FEDEX_PAK",
+        "pickupType": "USE_SCHEDULED_PICKUP",
+        "blockInsightVisibility": false,
+        "shippingChargesPayment": {
+          "paymentType": "SENDER"
+        },
+        "labelSpecification": {
+          "imageType": "PDF",
+          "labelStockType": "PAPER_85X11_TOP_HALF_LABEL"
+        },
+        "requestedPackageLineItems": [
           {
-            'weight': {
-              'value': totalWeight,
-              'units': 'KG'
+            "weight": {
+              "value": totalWeight,
+              "units": "KG"
             }
-          }
-        ],
-        'customerReferences': [
-          {
-            'customerReferenceType': 'CUSTOMER_REFERENCE',
-            'value': 'FDX${DateTime.now().millisecondsSinceEpoch}'
           }
         ]
       },
-      'additionalMetadata': {
-        'totalOrderCost': widget.totalAmount,
-        'tax': widget.tax,
-        'discount': widget.discount,
-        'deliveryFee': widget.deliveryFee,
-        'distance': widget.distance
+      "accountNumber": {
+        "value": "802255209"
       }
     };
 
-    widget.onPayloadGenerated(payload);
+    onPayloadGenerated(payload);
   }
 
   @override
   Widget build(BuildContext context) {
+    _generatePayload();
     return const SizedBox.shrink();
   }
 }

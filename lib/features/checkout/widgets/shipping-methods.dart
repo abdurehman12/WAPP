@@ -11,10 +11,12 @@ import 'package:flutter_sixvalley_ecommerce/features/checkout/widgets/fedex-fee-
 
 class ShippingMethodsWidget extends StatefulWidget {
   final Map<String, dynamic> deliveryAddress;
+  final Function(double)? onShippingFeeChanged;
 
   const ShippingMethodsWidget({
     Key? key,
     required this.deliveryAddress,
+    this.onShippingFeeChanged,
   }) : super(key: key);
 
   @override
@@ -57,8 +59,9 @@ class _ShippingMethodsWidgetState extends State<ShippingMethodsWidget> {
           .setShippingMethod(value);
 
       // Reset shipping fee when changing methods
-      Provider.of<CheckoutController>(context, listen: false)
-          .setShippingFee(0);
+      Provider.of<CheckoutController>(context, listen: false).setShippingFee(0);
+      widget.onShippingFeeChanged?.call(0);  // Add this
+      // Fee will be recalculated when calculator widget rebuilds
     }
   }
 
@@ -127,6 +130,7 @@ class _ShippingMethodsWidgetState extends State<ShippingMethodsWidget> {
                         onFeeCalculated: (fee) {
                           Provider.of<CheckoutController>(context, listen: false)
                               .setShippingFee(fee);
+                          widget.onShippingFeeChanged?.call(fee);
                         },
                       );
                     },
@@ -150,6 +154,7 @@ class _ShippingMethodsWidgetState extends State<ShippingMethodsWidget> {
                       onFeeCalculated: (fee) {
                         Provider.of<CheckoutController>(context, listen: false)
                             .setShippingFee(fee);
+                        widget.onShippingFeeChanged?.call(fee);
                       },
                     );
                   },
@@ -173,6 +178,7 @@ class _ShippingMethodsWidgetState extends State<ShippingMethodsWidget> {
                       onFeeCalculated: (fee) {
                         Provider.of<CheckoutController>(context, listen: false)
                             .setShippingFee(fee);
+                        widget.onShippingFeeChanged?.call(fee);
                       },
                     );
                   },

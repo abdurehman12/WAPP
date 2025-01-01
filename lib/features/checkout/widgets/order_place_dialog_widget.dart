@@ -11,7 +11,7 @@ class OrderPlaceDialogWidget extends StatelessWidget {
   final IconData icon;
   final String? title;
   final String? description;
-  const OrderPlaceDialogWidget({super.key, this.isFailed = false, this.rotateAngle = 0, required this.icon, required this.title, required this.description});
+  const OrderPlaceDialogWidget({super.key, this.isFailed = false, this.rotateAngle = 0, required this.icon, required this.title, required this.description, double? amount, double? shippingFee});
 
   @override
   Widget build(BuildContext context) {

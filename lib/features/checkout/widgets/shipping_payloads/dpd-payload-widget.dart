@@ -1,7 +1,9 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:flutter_sixvalley_ecommerce/features/cart/domain/models/cart_model.dart';
 
-class DPDPayloadWidget extends StatefulWidget {
+class DPDPayloadWidget extends StatelessWidget {
   final Map<String, dynamic> addressDetails;
   final List<CartModel> cartItems;
   final double totalAmount;
@@ -23,83 +25,82 @@ class DPDPayloadWidget extends StatefulWidget {
     required this.onPayloadGenerated,
   }) : super(key: key);
 
-  @override
-  _DPDPayloadWidgetState createState() => _DPDPayloadWidgetState();
-}
+  Future<String?> _getDPDGeoSession() async {
+    final String _dpdBaseUrl = 'https://api.dpdlocal.co.uk';
+    final String _dpdAuthToken = 'Basic cGFsbGV0c3J1czpwYWxsZXRzcnVzMjAyNEA=';
 
-class _DPDPayloadWidgetState extends State<DPDPayloadWidget> {
-  @override
-  void initState() {
-    super.initState();
-    _generatePayload();
+    try {
+      final response = await http.post(
+          Uri.parse('$_dpdBaseUrl/user/?action=login'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': _dpdAuthToken
+          }
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['data']?['geoSession'];
+      }
+      return null;
+    } catch (e) {
+      print('Error getting DPD GeoSession: $e');
+      return null;
+    }
   }
 
-  void _generatePayload() {
-    double totalWeight = 0;
-    for (var item in widget.cartItems) {
-      totalWeight += (item.weight ?? 0.5) * (item.quantity ?? 1);
-    }
+  Future<void> _generatePayload() async {
+    final geoSession = await _getDPDGeoSession();
+    if (geoSession == null) return;
+
+    double totalWeight = cartItems.fold(0.0,
+            (sum, item) => sum + ((item.quantity ?? 1) * 0.5));
 
     final payload = {
-      'consignment': [
-        {
-          'consignmentRef': 'DPD${DateTime.now().millisecondsSinceEpoch}',
-          'parcel': [
-            {
-              'packageNumber': 1,
-              'parcelProduct': widget.cartItems.map((item) => {
-                'productCode': item.id.toString(),
-                'productTypeDescription': item.name,
-                'productItemsDescription': item.name,
-                'unitWeight': item.weight ?? 0.5,
-                'numberOfItems': item.quantity ?? 1,
-                'unitValue': item.price ?? 0,
-              }).toList()
-            }
-          ],
-          'collectionDetails': {
-            'contactDetails': {
-              'contactName': '6Valley Shipper',
-              'telephone': '+44 0000 000000'
-            },
-            'address': {
-              'organisation': '6Valley',
-              'countryCode': 'GB',
-              'postcode': 'S5 6QR',
-              'street': '15 Tideswell Rd',
-              'town': 'Sheffield'
-            }
-          },
-          'deliveryDetails': {
-            'contactDetails': {
-              'contactName': widget.addressDetails['contactPersonName'] ?? 'Recipient',
-              'telephone': widget.addressDetails['phone'] ?? ''
-            },
-            'address': {
-              'organisation': widget.addressDetails['contactPersonName'] ?? 'Recipient',
-              'countryCode': 'GB',
-              'postcode': widget.addressDetails['zipCode'] ?? '',
-              'street': widget.addressDetails['address'] ?? '',
-              'town': widget.addressDetails['city'] ?? ''
-            }
-          },
-          'totalWeight': totalWeight,
+      "job_id": DateTime.now().millisecondsSinceEpoch.toString(),
+      "collectionDetails": {
+        "address": {
+          "organisation": "6Valley",
+          "addressLine1": "15 Tideswell Rd",
+          "town": "Sheffield",
+          "postcode": "S5 6QR",
+          "country": "GB"
+        },
+        "contactDetails": {
+          "contactName": "Store Contact",
+          "telephone": "1234567890"
         }
-      ],
-      'additionalMetadata': {
-        'totalOrderCost': widget.totalAmount,
-        'tax': widget.tax,
-        'discount': widget.discount,
-        'deliveryFee': widget.deliveryFee,
-        'distance': widget.distance
-      }
+      },
+      "deliveryDetails": {
+        "address": {
+          "organisation": addressDetails['contactPersonName'] ?? "",
+          "addressLine1": addressDetails['address'] ?? "",
+          "town": addressDetails['city'] ?? "",
+          "postcode": addressDetails['zipCode'] ?? "",
+          "country": "GB"
+        },
+        "contactDetails": {
+          "contactName": addressDetails['contactPersonName'] ?? "",
+          "telephone": addressDetails['phone'] ?? ""
+        }
+      },
+      "collectionDate": DateTime.now().toIso8601String().split('T')[0],
+      "numberOfParcels": cartItems.length,
+      "totalWeight": totalWeight,
+      "serviceCode": "1",
+      "totalAmount": totalAmount,
+      "shippingAmount": deliveryFee,
+      "reference": DateTime.now().millisecondsSinceEpoch.toString(),
+      "GeoSession": geoSession
     };
 
-    widget.onPayloadGenerated(payload);
+    onPayloadGenerated(payload);
   }
 
   @override
   Widget build(BuildContext context) {
+    _generatePayload();
     return const SizedBox.shrink();
   }
 }

@@ -214,5 +214,4 @@ class AppConstants {
   static const double maxLimitOfTotalFileSent = 5;
   static const double maxLimitOfFileSentINConversation = 25;
 
-
 }
