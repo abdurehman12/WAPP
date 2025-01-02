@@ -9,7 +9,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_sixvalley_ecommerce/common/basewidget/show_custom_snakbar_widget.dart';
 import 'package:flutter_sixvalley_ecommerce/features/checkout/screens/digital_payment_order_place_screen.dart';
-import 'package:flutter_sixvalley_ecommerce/features/cart/domain/models/cart_model.dart';
 import 'package:provider/provider.dart';
 
 
@@ -17,6 +16,9 @@ import 'package:provider/provider.dart';
 class CheckoutController with ChangeNotifier {
   final CheckoutServiceInterface checkoutServiceInterface;
   CheckoutController({required this.checkoutServiceInterface});
+
+  double _checkoutShippingFee = 0.0;  // Initialize with 0
+  double get checkoutShippingFee => _checkoutShippingFee;
 
   String _selectedShippingMethod = 'DPD';
   String get selectedShippingMethod => _selectedShippingMethod;
@@ -232,29 +234,52 @@ class CheckoutController with ChangeNotifier {
     String? couponCode,
     String? couponDiscount,
     String? paymentMethod,
-    double? totalAmount,
-    double? shippingFee,
-    Map<String, dynamic>? addressDetails,
-    List<CartModel>? cartItems,
-    double? calculatedDistance,
-    String? generatedOrderId,
-  }) async {
+    required double totalAmount,
+    required double shippingFee}) async {
     _isLoading =true;
 
-    ApiResponse apiResponse = await checkoutServiceInterface.digitalPaymentPlaceOrder(orderNote, customerId, addressId, billingAddressId, couponCode, couponDiscount, paymentMethod, _isCheckCreateAccount, passwordController.text.trim(), totalAmount, shippingFee);
+    // Log request data
+    print('\n=== Digital Payment Request ===');
+    print('Total Amount: $totalAmount');
+    print('Shipping Fee: $shippingFee');
+    print('Payment Method: $paymentMethod');
+    print('Customer ID: $customerId');
+    print('Address ID: $addressId');
+    print('Billing Address ID: $billingAddressId');
+    print('Coupon Code: $couponCode');
+    print('Coupon Discount: $couponDiscount');
+
+    // Print debug info
+    print('Digital Payment Request:');
+    print('Total Amount: $totalAmount');
+    print('Shipping Fee: $shippingFee');
+
+    ApiResponse apiResponse = await checkoutServiceInterface.digitalPaymentPlaceOrder(orderNote, customerId, addressId, billingAddressId, couponCode, couponDiscount, paymentMethod, _isCheckCreateAccount, passwordController.text.trim(), totalAmount, shippingFee );
+
+    // Log response data
+    print('\n=== Digital Payment Response ===');
+    print('Status Code: ${apiResponse.response?.statusCode}');
+    print('Response Data: ${apiResponse.response?.data}');
+    print('Redirect URL: ${apiResponse.response?.data['redirect_link']}');
+
     if (apiResponse.response != null && apiResponse.response!.statusCode == 200) {
       _addressIndex = null;
       _billingAddressIndex = null;
       sameAsBilling = false;
       _isLoading = false;
-      Navigator.pushReplacement(Get.context!, MaterialPageRoute(builder: (_) => DigitalPaymentScreen(url: apiResponse.response?.data['redirect_link'], addressDetails: addressDetails ?? {},
-        cartItems: cartItems ?? [],
-        totalAmount: totalAmount ?? 0.0,
-        taxAmount: 0.0, // Replace with the actual tax amount
-        discountAmount: 0.0, // Replace with the actual discount amount
-        shippingFee: shippingFee ?? 0.0,
-        calculatedDistance: calculatedDistance ?? 0.0,
-        generatedOrderId: generatedOrderId ?? '',)));
+
+      // String redirectUrl = apiResponse.response?.data['redirect_link'];
+      //
+      // // Add total amount and shipping fee to URL if they aren't already included
+      // if (!redirectUrl.contains('amount=')) {
+      //   redirectUrl += redirectUrl.contains('?') ? '&' : '?';
+      //   redirectUrl += 'amount=${totalAmount}';
+      // }
+      // if (!redirectUrl.contains('shipping_fee=')) {
+      //   redirectUrl += '&shipping_fee=${shippingFee}';
+      // }
+
+      Navigator.pushReplacement(Get.context!, MaterialPageRoute(builder: (_) => DigitalPaymentScreen(url: apiResponse.response?.data['redirect_link'],totalAmount: totalAmount, shippingFee: shippingFee, )));
 
     } else if(apiResponse.error == 'Already registered '){
       _isLoading = false;
@@ -268,6 +293,8 @@ class CheckoutController with ChangeNotifier {
   }
 
   bool sameAsBilling = false;
+
+  // get checkoutShippingFee => null;
   void setSameAsBilling(){
     sameAsBilling = !sameAsBilling;
     notifyListeners();
@@ -291,11 +318,13 @@ class CheckoutController with ChangeNotifier {
 
   void setShippingMethod(String method) {
     _selectedShippingMethod = method;
+    double calculatedFee = 0.0;  // Add your shipping fee calculation logic here
+    setShippingFee(calculatedFee);
     notifyListeners();
   }
 
   void setShippingFee(double fee) {
-    _shippingFee = fee;
+    _checkoutShippingFee = fee;
     notifyListeners();
   }
 

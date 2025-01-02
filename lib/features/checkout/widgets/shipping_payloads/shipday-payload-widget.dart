@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_sixvalley_ecommerce/features/cart/domain/models/cart_model.dart';
 
-class ShipdayPayloadWidget extends StatefulWidget {
+class ShipdayPayloadWidget extends StatelessWidget {
   final Map<String, dynamic> addressDetails;
   final List<CartModel> cartItems;
   final double totalAmount;
@@ -23,56 +23,47 @@ class ShipdayPayloadWidget extends StatefulWidget {
     required this.onPayloadGenerated,
   }) : super(key: key);
 
-  @override
-  _ShipdayPayloadWidgetState createState() => _ShipdayPayloadWidgetState();
-}
-
-class _ShipdayPayloadWidgetState extends State<ShipdayPayloadWidget> {
-  @override
-  void initState() {
-    super.initState();
-    _generatePayload();
-  }
-
-  void _generatePayload() {
-    final now = DateTime.now();
-    final deliveryDate = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
-    final pickupTime = now;
-    final deliveryTime = now.add(Duration(hours: 2));
+  Future<void> _generatePayload() async {
+    double totalWeight = cartItems.fold(0.0,
+            (sum, item) => sum + ((item.quantity ?? 1) * 0.5));
 
     final payload = {
-      'orderNumber': 'SHIP${DateTime.now().millisecondsSinceEpoch}',
-      'customerName': widget.addressDetails['contactPersonName'] ?? 'Customer',
-      'customerAddress': widget.addressDetails['address'] ?? '',
-      'customerEmail': widget.addressDetails['email'] ?? '',
-      'customerPhoneNumber': widget.addressDetails['phone'] ?? '',
-      'restaurantName': '6Valley',
-      'restaurantAddress': '15 Tideswell Rd, Sheffield S5 6QR, UK',
-      'restaurantPhoneNumber': '+44 0000 000000',
-      'expectedDeliveryDate': deliveryDate,
-      'pickupLatitude': 53.419040,
-      'pickupLongitude': -1.455223,
-      'deliveryLatitude': double.tryParse(widget.addressDetails['calculatedLatitude']?.toString() ?? '') ?? 53.5228957,
-      'deliveryLongitude': double.tryParse(widget.addressDetails['calculatedLongitude']?.toString() ?? '') ?? -1.1338375,
-      'distance': widget.distance,
-      'orderItems': widget.cartItems.map((item) => {
-        'name': item.name ?? 'Product',
-        'unitPrice': (item.price ?? 0).toDouble(),
-        'quantity': item.quantity ?? 1,
+      "orderNumber": DateTime.now().millisecondsSinceEpoch.toString(),
+      "customerName": addressDetails['contactPersonName'] ?? "",
+      "customerAddress": {
+        "street": addressDetails['address'] ?? "",
+        "city": addressDetails['city'] ?? "",
+        "zipCode": addressDetails['zipCode'] ?? "",
+        "country": "GB"
+      },
+      "customerPhone": addressDetails['phone'] ?? "",
+      "restaurantName": "6Valley",
+      "restaurantAddress": {
+        "street": "15 Tideswell Rd",
+        "city": "Sheffield",
+        "zipCode": "S5 6QR",
+        "country": "GB"
+      },
+      "restaurantPhone": "1234567890",
+      "expectedDeliveryDate": DateTime.now().toIso8601String().split('T')[0],
+      "orderItems": cartItems.map((item) => {
+        "name": item.name,
+        "quantity": item.quantity ?? 1,
+        "unitPrice": item.price,
+        "totalWeight": (item.quantity ?? 1) * 0.5
       }).toList(),
-      'tax': widget.tax,
-      'discountAmount': widget.discount,
-      'deliveryFee': widget.deliveryFee.toString(),
-      'totalOrderCost': widget.totalAmount,
-      'orderSource': 'Meghra Market App',
-      'paymentMethod': 'COD',
+      "orderAmount": totalAmount,
+      "tax": tax,
+      "discount": discount,
+      "deliveryFee": deliveryFee,
     };
 
-    widget.onPayloadGenerated(payload);
+    onPayloadGenerated(payload);
   }
 
   @override
   Widget build(BuildContext context) {
+    _generatePayload();
     return const SizedBox.shrink();
   }
 }

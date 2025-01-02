@@ -152,6 +152,11 @@ class CheckoutScreenState extends State<CheckoutScreen> {
 
 
                                             if(orderProvider.paymentMethodIndex != -1){
+                                              double finalTotal = (_order) +
+                                                  (orderProvider.checkoutShippingFee) -
+                                                  (widget.discount) -
+                                                  (_couponDiscount ?? 0) +
+                                                  (widget.tax);
                                               orderProvider.digitalPaymentPlaceOrder(
                                                   orderNote: orderNote,
                                                   customerId: Provider.of<AuthController>(context, listen: false).isLoggedIn()?
@@ -160,7 +165,9 @@ class CheckoutScreenState extends State<CheckoutScreen> {
                                                   billingAddressId: billingAddressId,
                                                   couponCode: couponCode,
                                                   couponDiscount: couponCodeAmount,
-                                                  paymentMethod: orderProvider.selectedDigitalPaymentMethodName);
+                                                  paymentMethod: orderProvider.selectedDigitalPaymentMethodName,
+                                                  totalAmount: finalTotal,
+                                                  shippingFee: orderProvider.checkoutShippingFee);
 
                                             }else if (orderProvider.codChecked && !widget.onlyDigital){
                                               orderProvider.placeOrder(callback: _callback,
@@ -282,7 +289,7 @@ class CheckoutScreenState extends State<CheckoutScreen> {
                                       AmountWidget(title: '${getTranslated('sub_total', context)} ${'(${widget.quantity} ${getTranslated('item', context)})'}',
                                           amount: PriceConverter.convertPrice(context, _order)),
                                       AmountWidget(title: getTranslated('shipping_fee', context),
-                                          amount: PriceConverter.convertPrice(context, checkoutController.shippingFee)),
+                                          amount: PriceConverter.convertPrice(context, checkoutController.checkoutShippingFee)),
                                       AmountWidget(title: getTranslated('discount', context),
                                           amount: PriceConverter.convertPrice(context, widget.discount)),
                                       AmountWidget(title: getTranslated('coupon_voucher', context),
@@ -292,7 +299,7 @@ class CheckoutScreenState extends State<CheckoutScreen> {
                                       Divider(height: 5, color: Theme.of(context).hintColor),
                                       AmountWidget(title: getTranslated('total_payable', context),
                                           amount: PriceConverter.convertPrice(context,
-                                              (_order + checkoutController.shippingFee - widget.discount - _couponDiscount! + widget.tax))),
+                                              (_order + checkoutController.checkoutShippingFee - widget.discount - _couponDiscount! + widget.tax))),
                                     ]);})),
 
 

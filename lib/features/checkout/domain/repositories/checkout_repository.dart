@@ -101,6 +101,12 @@ class CheckoutRepository implements CheckoutRepositoryInterface{
       ) async {
 
     try {
+
+      // Debug log the values before sending to API
+      print('\n=== Digital Payment Repository Data ===');
+      print('Total Amount: $totalAmount');
+      print('Shipping Fee: $shippingFee');
+
       int isCheckAccount = isCheckCreateAccount! ? 1: 0;
       Map<dynamic, dynamic> data = {
         "order_note": orderNote,
@@ -117,10 +123,12 @@ class CheckoutRepository implements CheckoutRepositoryInterface{
         'is_guest': !Provider.of<AuthController>(Get.context!, listen: false).isLoggedIn(),
         'is_check_create_account' : isCheckAccount.toString(),
         'password' : password,
-        'total_amount': totalAmount,
-        'shipping_fee': shippingFee,
+        'amount': totalAmount,
+        'shipping_fee': shippingFee
       };
 
+      // Log the final request data
+      print('Request Data: $data');
 
       final response = await dioClient!.post(AppConstants.digitalPayment, data: {
         "order_note": orderNote,
@@ -137,9 +145,13 @@ class CheckoutRepository implements CheckoutRepositoryInterface{
         'is_guest': !Provider.of<AuthController>(Get.context!, listen: false).isLoggedIn(),
         'is_check_create_account' : isCheckAccount.toString(),
         'password' : password,
-        'total_amount': totalAmount,
-        'shipping_fee': shippingFee,
+        'amount': totalAmount,
+        'shipping_fee': shippingFee
       });
+
+      // Log the response
+      print('API Response: ${response.data}');
+
       return ApiResponse.withSuccess(response);
     } catch (e) {
       return ApiResponse.withError(ApiErrorHandler.getMessage(e));
