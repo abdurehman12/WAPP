@@ -279,7 +279,16 @@ class CheckoutController with ChangeNotifier {
       //   redirectUrl += '&shipping_fee=${shippingFee}';
       // }
 
-      Navigator.pushReplacement(Get.context!, MaterialPageRoute(builder: (_) => DigitalPaymentScreen(url: apiResponse.response?.data['redirect_link'],totalAmount: totalAmount, shippingFee: shippingFee, )));
+      Navigator.pushReplacement(
+          Get.context!,
+          MaterialPageRoute(
+              builder: (_) => DigitalPaymentScreen(
+                  url: '${apiResponse.response?.data['redirect_link']}&total_amount=$totalAmount',
+                  totalAmount: totalAmount,
+                  shippingFee: shippingFee
+              )
+          )
+      );
 
     } else if(apiResponse.error == 'Already registered '){
       _isLoading = false;
